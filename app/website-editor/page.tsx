@@ -22,6 +22,35 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import TemplateSelector, {
+  TemplateOption,
+} from "@/components/ui/TemplateSelector";
+import { useDispatch } from "react-redux";
+import { resetTemplate } from "@/redux/features/templateSlice";
+
+// Define available templates
+const AVAILABLE_TEMPLATES: TemplateOption[] = [
+  {
+    id: "travel-tour",
+    name: "Travel & Tourism",
+    description:
+      "Perfect for travel agencies, tour operators, and destination websites",
+    thumbnail: "/templates/travel-tour-thumbnail.jpg",
+  },
+  // Add more templates as needed
+  // {
+  //   id: "ecommerce",
+  //   name: "E-Commerce",
+  //   description: "Showcase your products with a modern online store",
+  //   thumbnail: "/templates/ecommerce-thumbnail.jpg",
+  // },
+  // {
+  //   id: "portfolio",
+  //   name: "Portfolio",
+  //   description: "Highlight your work and skills with an elegant portfolio",
+  //   thumbnail: "/templates/portfolio-thumbnail.jpg",
+  // },
+];
 
 export default function WebsiteEditorPage() {
   const [loading, setLoading] = useState(true);
@@ -31,11 +60,12 @@ export default function WebsiteEditorPage() {
   const [slug, setSlug] = useState("");
   const [user, setUser] = useState<any>(null);
   const [websiteId, setWebsiteId] = useState<string | null>(null);
-  const [templateId, setTemplateId] = useState<string | null>(null);
+  const [templateType, setTemplateType] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
@@ -55,11 +85,10 @@ export default function WebsiteEditorPage() {
         await loadWebsite(id);
       } else if (template) {
         // Creating new website from template
-        setTemplateId(template);
+        setTemplateType(template);
         setLoading(false);
       } else {
-        // Invalid URL
-        setError("Invalid URL. Missing template or website ID.");
+        // New website without template preselected
         setLoading(false);
       }
     });
@@ -77,7 +106,8 @@ export default function WebsiteEditorPage() {
         setName(data.name || "");
         setDescription(data.description || "");
         setSlug(data.slug || "");
-        setTemplateId(data.templateId);
+        // Support both new templateType and legacy templateId
+        setTemplateType(data.templateType || data.templateId || null);
       } else {
         setError("Website not found");
       }
@@ -108,7 +138,7 @@ export default function WebsiteEditorPage() {
   };
 
   const handleSave = async () => {
-    if (!name || !slug || !templateId || !user) {
+    if (!name || !slug || !templateType || !user) {
       setError("Please fill in all required fields");
       return;
     }
@@ -121,7 +151,8 @@ export default function WebsiteEditorPage() {
         name,
         description,
         slug,
-        templateId,
+        templateType, // Use the new field name
+        templateId: templateType, // Keep for backward compatibility
         userId: user.uid,
         updatedAt: serverTimestamp(),
         isPublished: false,
@@ -153,6 +184,11 @@ export default function WebsiteEditorPage() {
     }
   };
 
+  const handleTemplateSelect = (templateId: string) => {
+    setTemplateType(templateId);
+    dispatch(resetTemplate(templateId));
+  };
+
   if (loading) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
@@ -161,7 +197,7 @@ export default function WebsiteEditorPage() {
     );
   }
 
-  if (error && !name && !templateId) {
+  if (error && !name && !templateType) {
     return (
       <div className='min-h-screen flex items-center justify-center p-4'>
         <Card className='w-full max-w-md'>
@@ -183,7 +219,7 @@ export default function WebsiteEditorPage() {
 
   return (
     <div className='min-h-screen flex items-center justify-center bg-gray-50 p-4'>
-      <Card className='w-full max-w-md'>
+      <Card className='w-full max-w-xl'>
         <CardHeader>
           <CardTitle>
             {websiteId ? "Edit Website" : "Create New Website"}
@@ -194,7 +230,7 @@ export default function WebsiteEditorPage() {
               : "Enter details for your new website"}
           </CardDescription>
         </CardHeader>
-        <CardContent className='space-y-4'>
+        <CardContent className='space-y-6'>
           {error && <p className='text-red-500 text-sm'>{error}</p>}
 
           <div className='space-y-2'>
@@ -236,6 +272,13 @@ export default function WebsiteEditorPage() {
               This will be the URL of your published website
             </p>
           </div>
+
+          {/* Template Selection */}
+          <TemplateSelector
+            templates={AVAILABLE_TEMPLATES}
+            selectedTemplateId={templateType}
+            onSelect={handleTemplateSelect}
+          />
         </CardContent>
         <CardFooter className='flex justify-between'>
           <Button variant='outline' onClick={() => router.push("/dashboard")}>

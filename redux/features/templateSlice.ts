@@ -197,6 +197,7 @@ const initialSections: Section[] = [
 interface TemplateState {
   id: string | null;
   name: string;
+  templateType: string;
   sections: Section[];
   editingSectionId: string | null;
   lastUpdated: string;
@@ -205,6 +206,7 @@ interface TemplateState {
 const initialState: TemplateState = {
   id: null,
   name: "Travel Tour Template",
+  templateType: "travel-tour",
   sections: initialSections,
   editingSectionId: null,
   lastUpdated: new Date().toISOString(),
@@ -309,6 +311,39 @@ export const templateSlice = createSlice({
 
       state.lastUpdated = new Date().toISOString();
     },
+    setTemplateType: (state, action: PayloadAction<string>) => {
+      state.templateType = action.payload;
+    },
+    resetTemplate: (state, action: PayloadAction<string>) => {
+      // Reset to initial state but keep the specified template type
+      const templateType = action.payload;
+
+      // Generate fresh IDs for default sections
+      const freshSections = initialSections.map((section) => ({
+        ...section,
+        id: nanoid(),
+      }));
+
+      return {
+        ...initialState,
+        templateType,
+        sections: freshSections,
+        lastUpdated: new Date().toISOString(),
+      };
+    },
+    fullReset: () => {
+      // Completely reset to initial state with fresh section IDs
+      const freshSections = initialSections.map((section) => ({
+        ...section,
+        id: nanoid(),
+      }));
+
+      return {
+        ...initialState,
+        sections: freshSections,
+        lastUpdated: new Date().toISOString(),
+      };
+    },
   },
 });
 
@@ -319,6 +354,9 @@ export const {
   deleteSection,
   updateSectionData,
   reorderSections,
+  setTemplateType,
+  resetTemplate,
+  fullReset,
 } = templateSlice.actions;
 
 export default templateSlice.reducer;

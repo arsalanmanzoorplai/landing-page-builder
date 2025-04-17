@@ -21,6 +21,65 @@ const AboutEditor: React.FC = () => {
 
   const aboutData = activeSection.data as AboutData;
 
+  // Helper function to convert a possible object to string
+  const getTextContent = (content: any): string => {
+    if (typeof content === "string") {
+      return content;
+    }
+
+    // If it's an object, try to extract text
+    if (content && typeof content === "object") {
+      // Check for special case: string-like object with numeric keys
+      if (isStringObject(content)) {
+        // Convert object with numeric keys back to a string
+        const keys = Object.keys(content).sort(
+          (a, b) => parseInt(a) - parseInt(b)
+        );
+        return keys.map((key) => content[key]).join("");
+      }
+
+      // Check for common content field names
+      if (content.text) return content.text;
+      if (content.content) return content.content;
+      if (content.description) return content.description;
+      if (content.value) return content.value;
+
+      // Last resort: stringify it
+      try {
+        return JSON.stringify(content);
+      } catch (e) {
+        return "[Object]";
+      }
+    }
+
+    return String(content);
+  };
+
+  // Helper function to check if an object is a string-like object with numeric keys
+  const isStringObject = (obj: any): boolean => {
+    if (!obj || typeof obj !== "object") return false;
+
+    // Check if the object has numeric keys starting from 0
+    const keys = Object.keys(obj);
+    if (keys.length === 0) return false;
+
+    // Check if all keys are sequential numbers
+    for (let i = 0; i < keys.length; i++) {
+      if (!obj.hasOwnProperty(i.toString())) {
+        return false;
+      }
+      // Check if values are single characters
+      if (
+        typeof obj[i.toString()] !== "string" ||
+        obj[i.toString()].length !== 1
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   // Handle image upload
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
@@ -41,6 +100,29 @@ const AboutEditor: React.FC = () => {
 
   // Handle updating a paragraph
   const handleUpdateParagraph = (index: number, value: string) => {
+    // Check if current paragraph is an object with specific structure
+    const currentParagraph = aboutData.paragraphs[index];
+
+    if (typeof currentParagraph === "object" && currentParagraph !== null) {
+      // If it has a text property, update that
+      if ("text" in currentParagraph) {
+        updateArrayItem("paragraphs", index, {
+          ...(currentParagraph as Record<string, unknown>),
+          text: value,
+        });
+        return;
+      }
+      // If it has a content property, update that
+      else if ("content" in currentParagraph) {
+        updateArrayItem("paragraphs", index, {
+          ...(currentParagraph as Record<string, unknown>),
+          content: value,
+        });
+        return;
+      }
+    }
+
+    // Default case: update as string
     updateArrayItem("paragraphs", index, value);
   };
 
@@ -53,7 +135,7 @@ const AboutEditor: React.FC = () => {
             <Label htmlFor='title'>Title</Label>
             <Input
               id='title'
-              value={aboutData.title}
+              value={getTextContent(aboutData.title)}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 updateSectionData<AboutData>({ title: e.target.value })
               }
@@ -74,7 +156,7 @@ const AboutEditor: React.FC = () => {
           {aboutData.paragraphs.map((paragraph, index) => (
             <div key={index} className='flex items-start gap-2'>
               <Textarea
-                value={paragraph}
+                value={getTextContent(paragraph)}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                   handleUpdateParagraph(index, e.target.value)
                 }

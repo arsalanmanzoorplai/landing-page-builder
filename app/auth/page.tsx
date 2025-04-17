@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { ReduxState } from "@/redux/store/Store";
 import LoginForm from "@/components/auth/LoginForm";
 import RegisterForm from "@/components/auth/RegisterForm";
@@ -14,18 +14,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { fullReset } from "@/redux/features/templateSlice";
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState("login");
   const router = useRouter();
+  const dispatch = useDispatch();
   const { isAuthenticated } = useSelector((state: ReduxState) => state.auth);
 
   useEffect(() => {
+    // Reset template state when auth page loads
+    dispatch(fullReset());
+
     // If user is already authenticated, redirect to dashboard
     if (isAuthenticated) {
       router.push("/dashboard");
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, dispatch]);
 
   return (
     <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>

@@ -40,7 +40,7 @@ const EditableSection: React.FC<EditableSectionProps> = ({
       data-section-type={section.type}
     >
       {/* Edit and Delete buttons - now always visible */}
-      <div className='absolute top-2 right-2 flex space-x-2 z-50'>
+      <div className='absolute top-2 right-2 flex space-x-2 z-40'>
         <Button
           variant='secondary'
           size='sm'
@@ -63,30 +63,20 @@ const EditableSection: React.FC<EditableSectionProps> = ({
 
       {children}
 
-      {/* Add Section button - visible on hover with CSS */}
-      {!isFooter ? (
-        <div className='absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300'>
-          <Button
-            variant='outline'
-            size='icon'
-            onClick={() => handleAddSection("hero", section.id)}
-            className='bg-white/90 hover:bg-white shadow-sm rounded-full h-10 w-10 flex items-center justify-center transition-all duration-200 hover:scale-110'
-          >
-            <Plus size={20} />
-          </Button>
-        </div>
-      ) : (
-        <div className='absolute bottom-0 left-1/2 transform -translate-x-1/2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300'>
-          <Button
-            variant='outline'
-            size='icon'
-            onClick={() => handleAddSection("hero", section.id)}
-            className='bg-white/90 hover:bg-white shadow-sm rounded-full h-10 w-10 flex items-center justify-center transition-all duration-200 hover:scale-110'
-          >
-            <Plus size={20} />
-          </Button>
-        </div>
-      )}
+      {/* Add Section button - visible on hover with CSS but positioned to not add space */}
+      <div
+        className='absolute bottom-0 left-1/2 transform -translate-x-1/2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300'
+        style={{ marginBottom: 0 }}
+      >
+        <Button
+          variant='outline'
+          size='icon'
+          onClick={() => handleAddSection("hero", section.id)}
+          className='bg-white/90 hover:bg-white shadow-sm rounded-full h-10 w-10 flex items-center justify-center transition-all duration-200 hover:scale-110'
+        >
+          <Plus size={20} />
+        </Button>
+      </div>
     </div>
   );
 };

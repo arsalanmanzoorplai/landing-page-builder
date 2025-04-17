@@ -201,11 +201,65 @@ export const useSectionEditor = (): UseSectionEditorReturn => {
 
     const currentArray = getNestedValue(activeSection.data, arrayPath) || [];
     const newArray = [...currentArray];
-    newArray[index] = { ...newArray[index], ...item };
+
+    // Check if we're dealing with a simple string update to an object
+    if (
+      typeof item === "string" &&
+      typeof newArray[index] === "object" &&
+      newArray[index] !== null
+    ) {
+      // For paragraph objects with numeric keys (character by character)
+      if (isStringObject(newArray[index])) {
+        // Convert string to object with numeric keys
+        const stringObj: Record<string, string> = {};
+        for (let i = 0; i < item.length; i++) {
+          stringObj[i.toString()] = item[i];
+        }
+        newArray[index] = stringObj;
+      }
+      // If it has a text or content property, update that instead of replacing the whole object
+      else if ("text" in newArray[index]) {
+        newArray[index] = { ...newArray[index], text: item };
+      } else if ("content" in newArray[index]) {
+        newArray[index] = { ...newArray[index], content: item };
+      } else {
+        // Default: replace with string value
+        newArray[index] = item;
+      }
+    } else if (typeof item === "object" && item !== null) {
+      newArray[index] = { ...newArray[index], ...item };
+    } else {
+      newArray[index] = item;
+    }
 
     updateSectionData<SectionDataTypes>({
       [arrayPath]: newArray,
     } as Partial<SectionDataTypes>);
+  };
+
+  // Helper function to check if an object is a string-like object with numeric keys
+  const isStringObject = (obj: any): boolean => {
+    if (!obj || typeof obj !== "object") return false;
+
+    // Check if the object has numeric keys starting from 0
+    const keys = Object.keys(obj);
+    if (keys.length === 0) return false;
+
+    // Check if all keys are sequential numbers
+    for (let i = 0; i < keys.length; i++) {
+      if (!obj.hasOwnProperty(i.toString())) {
+        return false;
+      }
+      // Check if values are single characters
+      if (
+        typeof obj[i.toString()] !== "string" ||
+        obj[i.toString()].length !== 1
+      ) {
+        return false;
+      }
+    }
+
+    return true;
   };
 
   // Helper function to get nested value from an object using a path string (e.g., "links.social")

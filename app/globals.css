@@ -323,3 +323,14 @@
     width: 95vw;
   }
 }
+
+/* Adjustments for editor mode */
+.section-edit-mode {
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+div[data-section-type]:last-child > * {
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+}

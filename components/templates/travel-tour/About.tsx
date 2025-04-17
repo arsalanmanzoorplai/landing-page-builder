@@ -17,6 +17,73 @@ const About: React.FC<AboutProps> = ({ data }) => {
     backgroundColor = "#f8fafc",
   } = data || {};
 
+  // Ensure paragraphs is an array
+  const paragraphsArray = Array.isArray(paragraphs) ? paragraphs : [paragraphs];
+
+  // For debugging
+  console.log("About paragraphs data:", paragraphsArray);
+
+  // Helper function to check if an object is a string-like object with numeric keys
+  const isStringObject = (obj: any): boolean => {
+    if (!obj || typeof obj !== "object") return false;
+
+    // Check if the object has numeric keys starting from 0
+    const keys = Object.keys(obj);
+    if (keys.length === 0) return false;
+
+    // Check if all keys are sequential numbers
+    for (let i = 0; i < keys.length; i++) {
+      if (!obj.hasOwnProperty(i.toString())) {
+        return false;
+      }
+      // Check if values are single characters
+      if (
+        typeof obj[i.toString()] !== "string" ||
+        obj[i.toString()].length !== 1
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  // Function to extract text from paragraph data
+  const getParagraphText = (paragraph: any): string => {
+    if (typeof paragraph === "string") {
+      return paragraph;
+    }
+
+    // If it's an object, try to extract text content from common field names
+    if (paragraph && typeof paragraph === "object") {
+      // Special case: if the object has numeric keys (0, 1, 2, etc.) and they're all characters,
+      // it's likely a string that was spread into an object - reconstruct it
+      if (isStringObject(paragraph)) {
+        // Convert object with numeric keys back to a string
+        const keys = Object.keys(paragraph).sort(
+          (a, b) => parseInt(a) - parseInt(b)
+        );
+        return keys.map((key) => paragraph[key]).join("");
+      }
+
+      // Check for common content field names
+      if (paragraph.text) return paragraph.text;
+      if (paragraph.content) return paragraph.content;
+      if (paragraph.description) return paragraph.description;
+      if (paragraph.value) return paragraph.value;
+
+      // If we can't find a suitable field, return a formatted JSON string
+      try {
+        return JSON.stringify(paragraph, null, 2);
+      } catch (e) {
+        return "[Error displaying paragraph content]";
+      }
+    }
+
+    // Fallback
+    return String(paragraph);
+  };
+
   // Split the title by space to style the last word differently
   const titleWords = title.split(" ");
   const lastWord = titleWords.pop() || "";
@@ -36,9 +103,9 @@ const About: React.FC<AboutProps> = ({ data }) => {
         </div>
         <article className='mb-8 lg:mb-0'>
           <h3>explore the difference</h3>
-          {paragraphs.map((paragraph, index) => (
+          {paragraphsArray.map((paragraph, index) => (
             <p key={index} className='mb-4'>
-              {paragraph}
+              {getParagraphText(paragraph)}
             </p>
           ))}
           <a href='#' className='btn'>

@@ -3,9 +3,21 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { auth, db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  serverTimestamp,
+  collection,
+  getDocs,
+  setDoc,
+  deleteDoc,
+} from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import TravelTourTemplate from "@/components/templates/TravelTourTemplate";
+import TemplateFactory from "@/components/templates/TemplateFactory";
+import { useDispatch, useSelector } from "react-redux";
+import { resetTemplate, setTemplate } from "@/redux/features/templateSlice";
+import { Section } from "@/hooks/useEditableSections";
 
 export default function EditorPage() {
   const [loading, setLoading] = useState(true);
@@ -13,9 +25,14 @@ export default function EditorPage() {
   const [website, setWebsite] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [templateType, setTemplateType] = useState("travel-tour");
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const dispatch = useDispatch();
+
+  // Access template state at the component level
+  const templateState = useSelector((state: any) => state.template);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -51,6 +68,39 @@ export default function EditorPage() {
 
       const websiteData = websiteSnap.data();
       setWebsite(websiteData);
+
+      // Determine template type from either templateType or legacy templateId field
+      const type =
+        websiteData.templateType || websiteData.templateId || "travel-tour";
+      setTemplateType(type);
+
+      // Check if there are existing sections for this website
+      const sectionsRef = collection(db, `websites/${websiteId}/sections`);
+      const sectionsSnapshot = await getDocs(sectionsRef);
+
+      if (!sectionsSnapshot.empty) {
+        // If there are saved sections, load them
+        const sections = sectionsSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Section[];
+
+        // Set the template data in Redux with existing sections
+        dispatch(
+          setTemplate({
+            id: websiteId,
+            name: websiteData.name || "Website",
+            templateType: type,
+            sections: sections,
+            editingSectionId: null,
+            lastUpdated: new Date().toISOString(),
+          })
+        );
+      } else {
+        // If no sections found (new website), initialize with fresh template
+        dispatch(resetTemplate(type));
+      }
+
       setLoading(false);
     } catch (error) {
       console.error("Error loading website:", error);
@@ -60,25 +110,77 @@ export default function EditorPage() {
   };
 
   const handleSave = async () => {
-    if (!website) return;
+    if (!website) return false;
 
     try {
       setSuccess(null);
+      setError(null);
 
-      const websiteRef = doc(db, "websites", searchParams.get("id") as string);
+      const websiteId = searchParams.get("id") as string;
+      const websiteRef = doc(db, "websites", websiteId);
+
+      // Use templateState from component scope
+      const sections = templateState.sections;
+
+      // First update the website document with basic info
       await updateDoc(websiteRef, {
         updatedAt: serverTimestamp(),
+        name: templateState.name || website.name,
       });
 
+      // Then save all the sections to Firestore
+      const sectionsRef = collection(db, `websites/${websiteId}/sections`);
+
+      // Get existing sections to compare
+      const existingSectionsSnapshot = await getDocs(sectionsRef);
+      const existingSectionIds = new Set(
+        existingSectionsSnapshot.docs.map((doc) => doc.id)
+      );
+
+      // First delete sections that no longer exist
+      const currentSectionIds = new Set(
+        sections.map((section: Section) => section.id)
+      );
+
+      const deletePromises = [];
+      for (const sectionId of existingSectionIds) {
+        if (!currentSectionIds.has(sectionId)) {
+          deletePromises.push(
+            deleteDoc(doc(db, `websites/${websiteId}/sections/${sectionId}`))
+          );
+        }
+      }
+
+      // Delete old sections first
+      await Promise.all(deletePromises);
+
+      // Then save all current sections
+      const savePromises = sections.map((section: Section) =>
+        setDoc(doc(db, `websites/${websiteId}/sections/${section.id}`), {
+          type: section.type,
+          order: section.order,
+          data: section.data,
+        })
+      );
+
+      // Wait for all sections to be saved
+      await Promise.all(savePromises);
+
+      console.log(
+        `Successfully saved ${sections.length} sections to Firestore`
+      );
       setSuccess("Website saved successfully!");
 
       // Clear success message after 3 seconds
       setTimeout(() => {
         setSuccess(null);
       }, 3000);
-    } catch (error) {
+
+      return true;
+    } catch (error: any) {
       console.error("Error saving website:", error);
-      setError("Failed to save website");
+      setError(`Failed to save website: ${error.message}`);
+      return false;
     }
   };
 
@@ -90,12 +192,21 @@ export default function EditorPage() {
       setSuccess(null);
       setError(null);
 
+      // First save the website sections
+      const saveSuccess = await handleSave();
+
+      if (!saveSuccess) {
+        setPublishing(false);
+        return;
+      }
+
       const websiteId = searchParams.get("id") as string;
       const websiteRef = doc(db, "websites", websiteId);
 
       await updateDoc(websiteRef, {
         isPublished: true,
         updatedAt: serverTimestamp(),
+        lastPublishedAt: serverTimestamp(),
       });
 
       setWebsite({
@@ -108,9 +219,9 @@ export default function EditorPage() {
           website.slug
       );
       setPublishing(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error publishing website:", error);
-      setError("Failed to publish website");
+      setError(`Failed to publish website: ${error.message}`);
       setPublishing(false);
     }
   };
@@ -140,8 +251,8 @@ export default function EditorPage() {
   }
 
   return (
-    <div className='relative pb-20'>
-      <header className='sticky top-0 z-50 bg-white border-b shadow-sm py-4'>
+    <div className='relative pb-0'>
+      <header className='sticky top-0 z-[100] bg-white border-b shadow-sm py-4'>
         <div className='container mx-auto px-4 flex justify-between items-center'>
           <div className='flex items-center'>
             <h1 className='text-xl font-semibold mr-6'>{website.name}</h1>
@@ -192,8 +303,8 @@ export default function EditorPage() {
         </div>
       </header>
 
-      <main>
-        <TravelTourTemplate previewMode={true} />
+      <main className='pb-0'>
+        <TemplateFactory templateType={templateType} previewMode={false} />
       </main>
     </div>
   );

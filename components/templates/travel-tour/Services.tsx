@@ -46,6 +46,70 @@ const Services: React.FC<ServicesProps> = ({ data }) => {
     backgroundColor = "#f7f7f7",
   } = data || {};
 
+  // For debugging
+  console.log("Services data:", services);
+
+  // Helper function to check if an object is a string-like object with numeric keys
+  const isStringObject = (obj: any): boolean => {
+    if (!obj || typeof obj !== "object") return false;
+
+    // Check if the object has numeric keys starting from 0
+    const keys = Object.keys(obj);
+    if (keys.length === 0) return false;
+
+    // Check if all keys are sequential numbers
+    for (let i = 0; i < keys.length; i++) {
+      if (!obj.hasOwnProperty(i.toString())) {
+        return false;
+      }
+      // Check if values are single characters
+      if (
+        typeof obj[i.toString()] !== "string" ||
+        obj[i.toString()].length !== 1
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  // Function to safely get text content
+  const getTextContent = (content: any): string => {
+    if (typeof content === "string") {
+      return content;
+    }
+
+    // If it's an object, try to extract text content from common field names
+    if (content && typeof content === "object") {
+      // Special case: if the object has numeric keys (0, 1, 2, etc.) and they're all characters,
+      // it's likely a string that was spread into an object - reconstruct it
+      if (isStringObject(content)) {
+        // Convert object with numeric keys back to a string
+        const keys = Object.keys(content).sort(
+          (a, b) => parseInt(a) - parseInt(b)
+        );
+        return keys.map((key) => content[key]).join("");
+      }
+
+      // Check for common content field names
+      if (content.text) return content.text;
+      if (content.content) return content.content;
+      if (content.description) return content.description;
+      if (content.value) return content.value;
+
+      // If we can't find a suitable field, return a formatted JSON string
+      try {
+        return JSON.stringify(content, null, 2);
+      } catch (e) {
+        return "[Error displaying content]";
+      }
+    }
+
+    // Fallback
+    return String(content);
+  };
+
   // Function to get icon component based on icon name
   const getIconComponent = (iconName: string) => {
     switch (iconName.toLowerCase()) {
@@ -85,17 +149,22 @@ const Services: React.FC<ServicesProps> = ({ data }) => {
     backgroundPosition: backgroundImage ? "center" : undefined,
   };
 
+  // Ensure services is an array
+  const servicesArray = Array.isArray(services) ? services : [services];
+
   return (
     <section className='section' id='services' style={sectionStyle}>
       <div className='section-title'>
         <h2>
           {firstWords} <span>{lastWord}</span>
         </h2>
-        {subtitle && <p className='section-subtitle'>{subtitle}</p>}
+        {subtitle && (
+          <p className='section-subtitle'>{getTextContent(subtitle)}</p>
+        )}
       </div>
 
       <div className='section-center sm:grid sm:grid-cols-2 sm:gap-8 md:grid-cols-3'>
-        {services.map((service, index) => (
+        {servicesArray.map((service, index) => (
           <article
             key={index}
             className='text-center mb-12 sm:mb-0 lg:flex lg:text-left'
@@ -104,8 +173,10 @@ const Services: React.FC<ServicesProps> = ({ data }) => {
               {getIconComponent(service.icon)}
             </span>
             <div className='lg:pl-4'>
-              <h4 className='lg:mb-2'>{service.title}</h4>
-              <p className='max-w-80 ml-auto mr-auto'>{service.description}</p>
+              <h4 className='lg:mb-2'>{getTextContent(service.title)}</h4>
+              <p className='max-w-80 ml-auto mr-auto'>
+                {getTextContent(service.description)}
+              </p>
             </div>
           </article>
         ))}

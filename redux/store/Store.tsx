@@ -53,8 +53,8 @@ const storage = createSessionStorage();
 
 // ***** persistConfig *****
 const persistConfig = {
-  key: "mock-exams",
-  blacklist: ["app"],
+  key: "landing-app",
+  blacklist: ["app", "template"], // Don't persist template state - load fresh from database
   storage,
 };
 
