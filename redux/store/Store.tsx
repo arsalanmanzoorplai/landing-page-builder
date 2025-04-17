@@ -12,7 +12,8 @@ import {
   type TypedUseSelectorHook,
 } from "react-redux";
 import appReducer from "@/redux/features/app/appSlice";
-
+import templateReducer from "@/redux/features/templateSlice";
+import uiReducer from "@/redux/features/uiSlice";
 // Create a custom storage engine for session storage
 const createSessionStorage = () => {
   if (typeof window !== "undefined") {
@@ -59,6 +60,8 @@ const persistConfig = {
 // ***** rootReducer *****
 const rootReducer = combineReducers({
   app: appReducer,
+  template: templateReducer,
+  ui: uiReducer,
 });
 
 // ***** persistedReducer *****

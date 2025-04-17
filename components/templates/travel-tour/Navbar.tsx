@@ -1,22 +1,57 @@
 "use client";
 import { useState, useRef } from "react";
-import { FaBars, FaFacebook, FaTwitter } from "react-icons/fa";
+import { FaBars, FaFacebook, FaTwitter, FaInstagram } from "react-icons/fa";
+import { NavbarData } from "@/hooks/useSectionEditor";
 
-const pageLinks = [
+// Default values if data is not provided
+const defaultPageLinks = [
   { id: 1, url: "#home", text: "home" },
   { id: 2, url: "#about", text: "about" },
   { id: 3, url: "#services", text: "services" },
   { id: 4, url: "#tours", text: "tours" },
 ];
-const socialLinks = [
+const defaultSocialLinks = [
   { id: 1, url: "https://www.facebook.com", icon: <FaFacebook /> },
   { id: 2, url: "https://www.twitter.com", icon: <FaTwitter /> },
 ];
 
-const Navbar = () => {
+interface NavbarProps {
+  data?: NavbarData;
+}
+
+const Navbar: React.FC<NavbarProps> = ({ data }) => {
   const [showLinks, setShowLinks] = useState(false);
   const linksContainerRef = useRef(null);
   const linksRef = useRef(null);
+
+  // Use provided data or fallback to defaults
+  const {
+    logo = "/images/travel-tour-img/logo.svg",
+    title = "Travel Tour",
+    links = defaultPageLinks.map((link) => ({
+      text: link.text,
+      url: link.url,
+    })),
+    socialLinks: socialLinksData = defaultSocialLinks.map((link) => ({
+      icon: link.icon === defaultSocialLinks[0].icon ? "facebook" : "twitter",
+      url: link.url,
+    })),
+    backgroundColor = "white",
+  } = data || {};
+
+  // Map social icons to components
+  const getSocialIcon = (iconName: string) => {
+    switch (iconName.toLowerCase()) {
+      case "facebook":
+        return <FaFacebook />;
+      case "twitter":
+        return <FaTwitter />;
+      case "instagram":
+        return <FaInstagram />;
+      default:
+        return <FaFacebook />;
+    }
+  };
 
   const toggleLinks = () => {
     setShowLinks(!showLinks);
@@ -33,14 +68,13 @@ const Navbar = () => {
   };
 
   return (
-    <nav className='bg-clr-white shadow-md'>
+    <nav className='bg-clr-white shadow-md' style={{ backgroundColor }}>
       <div className='md:max-w-[1170px] md:mx-auto md:flex md:items-center md:justify-between md:p-4'>
         <div className='flex items-center justify-between p-4 md:p-0'>
-          <img
-            src='/images/travel-tour-img/logo.svg'
-            className='nav-logo h-[40px]'
-            alt='logo'
-          />
+          <div className='flex items-center'>
+            <img src={logo} className='nav-logo h-[40px] mr-2' alt='logo' />
+            <span className='text-xl font-bold'>{title}</span>
+          </div>
           <button
             className='text-2xl text-primary-5 bg-transparent border-transparent cursor-pointer hover:text-primary-7 hover:rotate-[90deg] transition-all duration-300 ease-linear md:hidden'
             onClick={toggleLinks}
@@ -55,15 +89,14 @@ const Navbar = () => {
           style={linkStyles}
         >
           <ul className='md:flex md:gap-2' ref={linksRef}>
-            {pageLinks.map((link) => {
-              const { id, url, text } = link;
+            {links.map((link, index) => {
               return (
-                <li key={id}>
+                <li key={index}>
                   <a
-                    href={url}
+                    href={link.url}
                     className='text-grey-1 text-base capitalize tracking-spacing block py-2 px-4 transition-all duration-300 ease-linear cursor-pointer hover:text-primary-1 hover:bg-primary-8 hover:pl-6 md:p-0 md:hover:bg-transparent md:hover:p-0 md:hover:text-primary-5'
                   >
-                    {text}
+                    {link.text}
                   </a>
                 </li>
               );
@@ -72,15 +105,14 @@ const Navbar = () => {
         </div>
         {/* social links */}
         <ul className='hidden md:flex md:gap-2 md:cursor-pointer'>
-          {socialLinks.map((socialIcon) => {
-            const { id, url, icon } = socialIcon;
+          {socialLinksData.map((socialIcon, index) => {
             return (
-              <li key={id}>
+              <li key={index}>
                 <a
-                  href={url}
+                  href={socialIcon.url}
                   className='md:text-primary-5 md:transition-all md:duration-300 md:ease-linear md:hover:text-primary-3'
                 >
-                  {icon}
+                  {getSocialIcon(socialIcon.icon)}
                 </a>
               </li>
             );

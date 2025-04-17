@@ -1,95 +1,98 @@
+"use client";
 import React from "react";
+import { FeaturedToursData, TourData } from "@/hooks/useSectionEditor";
+import { FaMapMarkerAlt } from "react-icons/fa";
 
-const tours = [
-  {
-    id: 1,
-    image: "/images/travel-tour-img/tour-1.jpeg",
-    date: "august 26th, 2020",
-    title: "Tibet Adventure",
-    info: ` Lorem ipsum dolor sit amet, consectetur adipisicing elit. Cumque vitae tempore voluptatum maxime reprehenderit eum quod exercitationem fugit, qui corporis.`,
-    location: "china",
-    duration: 6,
-    cost: 2100,
-  },
-  {
-    id: 2,
-    image: "/images/travel-tour-img/tour-2.jpeg",
-    date: "october 1th, 2020",
-    title: "best of java",
-    info: ` Lorem ipsum dolor sit amet, consectetur adipisicing elit. Cumque vitae tempore voluptatum maxime reprehenderit eum quod exercitationem fugit, qui corporis.`,
-    location: "indonesia",
-    duration: 11,
-    cost: 1400,
-  },
-  {
-    id: 3,
-    image: "/images/travel-tour-img/tour-3.jpeg",
-    date: "september 15th, 2020",
-    title: "explore hong kong",
-    info: ` Lorem ipsum dolor sit amet, consectetur adipisicing elit. Cumque vitae tempore voluptatum maxime reprehenderit eum quod exercitationem fugit, qui corporis.`,
-    location: "hong kong",
-    duration: 8,
-    cost: 5000,
-  },
-  {
-    id: 4,
-    image: "/images/travel-tour-img/tour-4.jpeg",
-    date: "december 5th, 2019",
-    title: "kenya highlights",
-    info: ` Lorem ipsum dolor sit amet, consectetur adipisicing elit. Cumque vitae tempore voluptatum maxime reprehenderit eum quod exercitationem fugit, qui corporis.`,
-    location: "kenya",
-    duration: 20,
-    cost: 3300,
-  },
-];
+interface FeaturedToursProps {
+  data?: FeaturedToursData;
+}
 
-const FeaturedTours = () => {
+const FeaturedTours: React.FC<FeaturedToursProps> = ({ data }) => {
+  // Default values if data is not provided
+  const {
+    title = "Featured Tours",
+    subtitle = "",
+    tours = [
+      {
+        image: "/images/travel-tour-img/tour-1.jpeg",
+        title: "Tibet Adventure",
+        description:
+          "Lorem ipsum dolor sit amet, consectetur adipisicing elit. Cumque vitae tempore voluptatum maxime reprehenderit eum quod exercitationem fugit, qui corporis.",
+        price: "$2,100",
+        duration: "6 days",
+        url: "#",
+      },
+      {
+        image: "/images/travel-tour-img/tour-2.jpeg",
+        title: "Best of Java",
+        description:
+          "Lorem ipsum dolor sit amet, consectetur adipisicing elit. Cumque vitae tempore voluptatum maxime reprehenderit eum quod exercitationem fugit, qui corporis.",
+        price: "$1,400",
+        duration: "11 days",
+        url: "#",
+      },
+      {
+        image: "/images/travel-tour-img/tour-3.jpeg",
+        title: "Explore Hong Kong",
+        description:
+          "Lorem ipsum dolor sit amet, consectetur adipisicing elit. Cumque vitae tempore voluptatum maxime reprehenderit eum quod exercitationem fugit, qui corporis.",
+        price: "$5,000",
+        duration: "8 days",
+        url: "#",
+      },
+    ],
+    backgroundColor = "#ffffff",
+  } = data || {};
+
+  // Split the title by space to style the last word differently
+  const titleWords = title.split(" ");
+  const lastWord = titleWords.pop() || "";
+  const firstWords = titleWords.join(" ");
+
   return (
-    <section className='section' id='tours'>
+    <section className='section' id='tours' style={{ backgroundColor }}>
       <div className='section-title'>
         <h2>
-          featured <span>tours</span>
+          {firstWords} <span>{lastWord}</span>
         </h2>
+        {subtitle && <p className='section-subtitle'>{subtitle}</p>}
       </div>
 
       <div className='section-center md:grid md:grid-cols-2 md:gap-8 lg:grid-cols-3'>
-        {tours.map((tour) => {
-          const { id, image, date, title, info, location, duration, cost } =
-            tour;
-          return (
-            <article
-              className='transition-all duration-300 ease-linear bg-grey-10 shadow-md mb-8 hover:shadow-lg hover:scale-[1.02]'
-              key={id}
-            >
-              <div className='relative'>
-                <img src={image} className='h-60 object-cover' alt={title} />
-                <p className='absolute right-0 bottom-0 bg-primary-8 text-primary-1 capitalize  py-1 px-2 mb-0'>
-                  {date}
+        {tours.map((tour, index) => (
+          <article
+            className='transition-all duration-300 ease-linear bg-grey-10 shadow-md mb-8 hover:shadow-lg hover:scale-[1.02]'
+            key={index}
+          >
+            <div className='relative'>
+              <img
+                src={tour.image}
+                className='h-60 object-cover w-full'
+                alt={tour.title}
+              />
+            </div>
+            <div className='py-5 px-6'>
+              <div>
+                <h4>{tour.title}</h4>
+              </div>
+              <p>{tour.description}</p>
+              <div className='flex justify-between flex-wrap items-center mt-4'>
+                <p className='text-sm mb-0 capitalize text-primary-5 leading-0'>
+                  {tour.duration}
+                </p>
+                <p className='text-sm mb-0 font-bold text-primary-5 leading-0'>
+                  From {tour.price}
                 </p>
               </div>
-              <div className='py-5 px-6'>
-                <div>
-                  <h4>{title}</h4>
-                </div>
-                <p>{info}</p>
-                <div className='flex justify-between flex-wrap items-center'>
-                  <p className='mb-0 capitalize text-primary-5 leading-0'>
-                    <span className='mr-1'>
-                      <i className='fas fa-map'></i>
-                    </span>
-                    {location}
-                  </p>
-                  <p className='mb-0 capitalize text-primary-5 leading-0'>
-                    from ${cost}
-                  </p>
-                  <p className='mb-0 capitalize text-primary-5 leading-0'>
-                    {duration} days
-                  </p>
-                </div>
-              </div>
-            </article>
-          );
-        })}
+              <a
+                href={tour.url}
+                className='btn btn-primary mt-4 inline-block w-full text-center'
+              >
+                Details
+              </a>
+            </div>
+          </article>
+        ))}
       </div>
     </section>
   );
