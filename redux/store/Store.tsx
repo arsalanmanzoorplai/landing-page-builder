@@ -14,6 +14,7 @@ import {
 import appReducer from "@/redux/features/app/appSlice";
 import templateReducer from "@/redux/features/templateSlice";
 import uiReducer from "@/redux/features/uiSlice";
+import authReducer from "@/redux/features/authSlice";
 // Create a custom storage engine for session storage
 const createSessionStorage = () => {
   if (typeof window !== "undefined") {
@@ -62,6 +63,7 @@ const rootReducer = combineReducers({
   app: appReducer,
   template: templateReducer,
   ui: uiReducer,
+  auth: authReducer,
 });
 
 // ***** persistedReducer *****
