@@ -9,7 +9,7 @@ import {
 } from "@/hooks/useEditableSections";
 import { useUIState } from "@/hooks/useUIState";
 import { Button } from "@/components/ui/button";
-import { RootState } from "@/redux/store";
+import { ReduxState } from "@/redux/store/Store";
 
 interface EditableSectionProps {
   section: Section;
@@ -21,7 +21,7 @@ const EditableSection: React.FC<EditableSectionProps> = ({
   children,
 }) => {
   const dispatch = useDispatch();
-  const { previewMode } = useSelector((state: RootState) => state.ui);
+  const { previewMode } = useSelector((state: ReduxState) => state.ui);
   const { handleEditSection, handleDeleteSection, handleAddSection } =
     useEditableSections();
 

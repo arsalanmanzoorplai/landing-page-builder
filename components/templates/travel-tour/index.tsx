@@ -12,10 +12,10 @@ import About from "@/components/templates/travel-tour/About";
 import Services from "@/components/templates/travel-tour/Services";
 import FeaturedTours from "@/components/templates/travel-tour/FeaturedTours";
 import Footer from "@/components/templates/travel-tour/Footer";
-import { RootState } from "@/redux/store";
+import { ReduxState } from "@/redux/store/Store";
 
 const TravelTour = () => {
-  const { sections } = useSelector((state: RootState) => state.template);
+  const { sections } = useSelector((state: ReduxState) => state.template);
 
   // Map the sections by type to their components
   const renderSection = (section: any) => {
