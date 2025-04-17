@@ -16,16 +16,76 @@ const NavbarEditor: React.FC = () => {
     imageUploadState,
   } = useSectionEditor();
 
+  // Track separate upload states for logo and tabLogo
+  const [logoUploadProgress, setLogoUploadProgress] = useState(0);
+  const [tabLogoUploadProgress, setTabLogoUploadProgress] = useState(0);
+  const [isLogoUploading, setIsLogoUploading] = useState(false);
+  const [isTabLogoUploading, setIsTabLogoUploading] = useState(false);
+
   if (!activeSection || activeSection.type !== "navbar") return null;
 
   const navbarData = activeSection.data as NavbarData;
 
-  // Handle file upload
+  // Handle logo upload
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
 
-    const file = e.target.files[0];
-    await uploadImage(file, "logo");
+    setIsLogoUploading(true);
+    setLogoUploadProgress(0);
+
+    // Use a timer to simulate upload progress
+    const interval = setInterval(() => {
+      setLogoUploadProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          return 100;
+        }
+        return prev + 10;
+      });
+    }, 200);
+
+    try {
+      const file = e.target.files[0];
+      await uploadImage(file, "logo");
+    } finally {
+      clearInterval(interval);
+      setTimeout(() => {
+        setIsLogoUploading(false);
+        setLogoUploadProgress(0);
+      }, 500);
+    }
+  };
+
+  // Handle tab logo upload
+  const handleTabLogoUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    setIsTabLogoUploading(true);
+    setTabLogoUploadProgress(0);
+
+    // Use a timer to simulate upload progress
+    const interval = setInterval(() => {
+      setTabLogoUploadProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          return 100;
+        }
+        return prev + 10;
+      });
+    }, 200);
+
+    try {
+      const file = e.target.files[0];
+      await uploadImage(file, "tabLogo");
+    } finally {
+      clearInterval(interval);
+      setTimeout(() => {
+        setIsTabLogoUploading(false);
+        setTabLogoUploadProgress(0);
+      }, 500);
+    }
   };
 
   // Handle adding a new link
@@ -134,17 +194,57 @@ const NavbarEditor: React.FC = () => {
                   Upload Logo
                 </Button>
               </div>
-              {imageUploadState.isUploading && (
+              {isLogoUploading && (
                 <div className='flex items-center gap-2'>
                   <div className='w-24 h-2 bg-gray-200 rounded-full overflow-hidden'>
                     <div
                       className='h-full bg-blue-500 rounded-full'
-                      style={{ width: `${imageUploadState.progress}%` }}
+                      style={{ width: `${logoUploadProgress}%` }}
                     />
                   </div>
-                  <span className='text-sm'>{imageUploadState.progress}%</span>
+                  <span className='text-sm'>{logoUploadProgress}%</span>
                 </div>
               )}
+            </div>
+          </div>
+
+          <div className='space-y-2'>
+            <Label htmlFor='tabLogo'>Browser Tab Logo (Favicon)</Label>
+            <div className='flex items-center gap-4'>
+              <div className='h-10 w-10 overflow-hidden bg-gray-100 rounded'>
+                <img
+                  src={navbarData.tabLogo || navbarData.logo}
+                  alt='Tab Logo'
+                  className='h-full w-full object-contain'
+                />
+              </div>
+              <div className='relative'>
+                <Input
+                  id='tabLogo'
+                  type='file'
+                  accept='image/*'
+                  onChange={handleTabLogoUpload}
+                  className='absolute inset-0 opacity-0 cursor-pointer'
+                />
+                <Button type='button' variant='outline' size='sm'>
+                  <Upload className='w-4 h-4 mr-2' />
+                  Upload Tab Logo
+                </Button>
+              </div>
+              {isTabLogoUploading && (
+                <div className='flex items-center gap-2'>
+                  <div className='w-24 h-2 bg-gray-200 rounded-full overflow-hidden'>
+                    <div
+                      className='h-full bg-blue-500 rounded-full'
+                      style={{ width: `${tabLogoUploadProgress}%` }}
+                    />
+                  </div>
+                  <span className='text-sm'>{tabLogoUploadProgress}%</span>
+                </div>
+              )}
+              <div className='text-xs text-gray-500'>
+                Recommended: Square image, ideally 32x32 or 64x64 pixels
+              </div>
             </div>
           </div>
         </div>

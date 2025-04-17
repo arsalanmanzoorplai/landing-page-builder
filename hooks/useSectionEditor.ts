@@ -10,6 +10,7 @@ interface ImageUploadState {
 
 export interface NavbarData {
   logo: string;
+  tabLogo: string;
   title: string;
   links: Array<{ text: string; url: string }>;
   socialLinks: Array<{ icon: string; url: string }>;
@@ -133,9 +134,8 @@ export const useSectionEditor = (): UseSectionEditorReturn => {
     });
 
     try {
-      // This would be the actual upload logic, using Firebase Storage or other service
-      // For now, we'll simulate it
-      // In a real implementation, this would upload to Firebase Storage and return a URL
+      // Create a data URL from the file for immediate display
+      const imageUrl = await readFileAsDataURL(file);
 
       return new Promise<string>((resolve) => {
         const interval = setInterval(() => {
@@ -145,16 +145,16 @@ export const useSectionEditor = (): UseSectionEditorReturn => {
               clearInterval(interval);
               // Simulate a delay for completing the upload
               setTimeout(() => {
-                // Update the image URL in the section data
+                // Update the image URL in the section data with the actual data URL
                 updateSectionData<SectionDataTypes>({
-                  [fieldPath]: "https://example.com/placeholder-image.jpg",
+                  [fieldPath]: imageUrl,
                 } as Partial<SectionDataTypes>);
                 setImageUploadState({
                   isUploading: false,
                   progress: 0,
                   error: null,
                 });
-                resolve("https://example.com/placeholder-image.jpg");
+                resolve(imageUrl);
               }, 500);
             }
             return {
@@ -172,6 +172,16 @@ export const useSectionEditor = (): UseSectionEditorReturn => {
       });
       throw err;
     }
+  };
+
+  // Helper function to read a file as a data URL
+  const readFileAsDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   };
 
   const addArrayItem = (arrayPath: string, item: any) => {

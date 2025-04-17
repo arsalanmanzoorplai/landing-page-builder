@@ -14,6 +14,7 @@ import {
 const defaultSectionData: Record<SectionType, any> = {
   navbar: {
     logo: "/images/travel-tour-img/logo.svg",
+    tabLogo: "/images/travel-tour-img/favicon.ico",
     title: "Travel Tour",
     links: [
       { text: "Home", url: "#" },
@@ -222,6 +223,10 @@ export const templateSlice = createSlice({
     setEditingSectionId: (state, action: PayloadAction<string | null>) => {
       state.editingSectionId = action.payload;
     },
+    setTemplateName: (state, action: PayloadAction<string>) => {
+      state.name = action.payload;
+      state.lastUpdated = new Date().toISOString();
+    },
     addSection: (
       state,
       action: PayloadAction<{ type: SectionType; afterSectionId: string }>
@@ -314,9 +319,20 @@ export const templateSlice = createSlice({
     setTemplateType: (state, action: PayloadAction<string>) => {
       state.templateType = action.payload;
     },
-    resetTemplate: (state, action: PayloadAction<string>) => {
-      // Reset to initial state but keep the specified template type
-      const templateType = action.payload;
+    resetTemplate: (
+      state,
+      action: PayloadAction<string | { type: string; name?: string }>
+    ) => {
+      // Reset to initial state but keep the specified template type and name if provided
+      let templateType: string;
+      let templateName: string | undefined;
+
+      if (typeof action.payload === "string") {
+        templateType = action.payload;
+      } else {
+        templateType = action.payload.type;
+        templateName = action.payload.name;
+      }
 
       // Generate fresh IDs for default sections
       const freshSections = initialSections.map((section) => ({
@@ -327,6 +343,8 @@ export const templateSlice = createSlice({
       return {
         ...initialState,
         templateType,
+        // Preserve name if provided, otherwise use the default
+        name: templateName || initialState.name,
         sections: freshSections,
         lastUpdated: new Date().toISOString(),
       };
@@ -350,6 +368,7 @@ export const templateSlice = createSlice({
 export const {
   setTemplate,
   setEditingSectionId,
+  setTemplateName,
   addSection,
   deleteSection,
   updateSectionData,

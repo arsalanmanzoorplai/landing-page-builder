@@ -14,9 +14,15 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import TemplateFactory from "@/components/templates/TemplateFactory";
 import { useDispatch, useSelector } from "react-redux";
-import { resetTemplate, setTemplate } from "@/redux/features/templateSlice";
+import {
+  resetTemplate,
+  setTemplate,
+  setTemplateName,
+} from "@/redux/features/templateSlice";
 import { Section } from "@/hooks/useEditableSections";
 
 export default function EditorPage() {
@@ -33,6 +39,17 @@ export default function EditorPage() {
 
   // Access template state at the component level
   const templateState = useSelector((state: any) => state.template);
+
+  // Add state for website name editing
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState("");
+
+  // Add this useEffect to initialize the name input when website loads
+  useEffect(() => {
+    if (website && templateState) {
+      setNameInput(templateState.name || website.name || "");
+    }
+  }, [website, templateState]);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -98,7 +115,13 @@ export default function EditorPage() {
         );
       } else {
         // If no sections found (new website), initialize with fresh template
-        dispatch(resetTemplate(type));
+        // Pass both type and name to ensure the name is preserved
+        dispatch(
+          resetTemplate({
+            type: type,
+            name: websiteData.name,
+          })
+        );
       }
 
       setLoading(false);
@@ -203,6 +226,7 @@ export default function EditorPage() {
       const websiteId = searchParams.get("id") as string;
       const websiteRef = doc(db, "websites", websiteId);
 
+      // No need to update the name here - it's already saved in handleSave
       await updateDoc(websiteRef, {
         isPublished: true,
         updatedAt: serverTimestamp(),
@@ -230,6 +254,24 @@ export default function EditorPage() {
     router.push("/dashboard");
   };
 
+  const handleSaveName = () => {
+    if (nameInput.trim()) {
+      // Update the name in Redux
+      dispatch(setTemplateName(nameInput.trim()));
+      setIsEditingName(false);
+
+      // Save the name to Firestore immediately to ensure it's not lost
+      const websiteId = searchParams.get("id") as string;
+      const websiteRef = doc(db, "websites", websiteId);
+      updateDoc(websiteRef, {
+        name: nameInput.trim(),
+        updatedAt: serverTimestamp(),
+      }).catch((error) => {
+        console.error("Error updating website name:", error);
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
@@ -255,7 +297,39 @@ export default function EditorPage() {
       <header className='sticky top-0 z-[100] bg-white border-b shadow-sm py-4'>
         <div className='container mx-auto px-4 flex justify-between items-center'>
           <div className='flex items-center'>
-            <h1 className='text-xl font-semibold mr-6'>{website.name}</h1>
+            {isEditingName ? (
+              <div className='flex items-center'>
+                <Input
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  className='w-64 mr-2'
+                  placeholder='Website Name'
+                  autoFocus
+                />
+                <Button size='sm' onClick={handleSaveName}>
+                  Save
+                </Button>
+                <Button
+                  size='sm'
+                  variant='ghost'
+                  onClick={() => {
+                    setNameInput(templateState.name || website.name || "");
+                    setIsEditingName(false);
+                  }}
+                  className='ml-1'
+                >
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <h1
+                className='text-xl font-semibold mr-6 cursor-pointer hover:underline'
+                onClick={() => setIsEditingName(true)}
+                title='Click to edit website name'
+              >
+                {templateState.name || website.name || "Unnamed Website"}
+              </h1>
+            )}
             {website.isPublished && (
               <span className='px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full'>
                 Published

@@ -186,7 +186,12 @@ export default function WebsiteEditorPage() {
 
   const handleTemplateSelect = (templateId: string) => {
     setTemplateType(templateId);
-    dispatch(resetTemplate(templateId));
+    dispatch(
+      resetTemplate({
+        type: templateId,
+        name: name || undefined,
+      })
+    );
   };
 
   if (loading) {
