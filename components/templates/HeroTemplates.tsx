@@ -1,7 +1,10 @@
+"use client";
+
 import React from "react";
 import { useDispatch } from "react-redux";
 import { useSectionEditor } from "@/hooks/useSectionEditor";
 import { useUIState } from "@/hooks/useUIState";
+import { heroVariants } from "./travel-tour/sections/hero";
 
 const HeroTemplates: React.FC = () => {
   const dispatch = useDispatch();
@@ -10,71 +13,56 @@ const HeroTemplates: React.FC = () => {
 
   if (!activeSection || activeSection.type !== "hero") return null;
 
-  const handleSelectTemplate = (template: string) => {
-    // For demonstration, we'll just update the section title based on template
-    // In a real app, you'd update more properties or swap the entire data
-    dispatch({
-      type: "template/updateSectionData",
-      payload: {
-        sectionId: activeSection.id,
-        data: { title: `${template} Hero` },
-      },
-    });
+  const handleSelectTemplate = (variantId: string) => {
+    // Find the selected variant
+    const selectedVariant = heroVariants.find(
+      (variant) => variant.id === variantId
+    );
 
-    closeAllSheets();
+    if (selectedVariant) {
+      // Apply the variant's default data to the section
+      dispatch({
+        type: "template/updateSectionData",
+        payload: {
+          sectionId: activeSection.id,
+          data: {
+            ...selectedVariant.defaultData,
+            // Add the variant ID to identify which template was selected
+            variantId: variantId,
+          },
+        },
+      });
+
+      // Close the edit sheet
+      closeAllSheets();
+    }
   };
 
   return (
-    <div className='grid grid-cols-2 gap-4'>
-      <div
-        className='border rounded-lg p-4 cursor-pointer hover:bg-gray-50'
-        onClick={() => handleSelectTemplate("Default")}
-      >
-        <div className='h-32 bg-gray-100 rounded mb-3 flex items-center justify-center overflow-hidden'>
-          <img
-            src='/templates/hero-default.jpg'
-            alt='Default Hero'
-            className='w-full object-cover'
-          />
-        </div>
-        <h3 className='font-medium text-center'>Default Hero</h3>
-        <p className='text-sm text-gray-500 text-center mt-1'>
-          Fullscreen background with centered text
-        </p>
-      </div>
+    <div>
+      <h3 className='text-lg font-semibold mb-4'>Choose a hero layout</h3>
+      <p className='text-sm text-gray-500 mb-6'>
+        Selecting a new layout will replace your current section content
+      </p>
 
-      <div
-        className='border rounded-lg p-4 cursor-pointer hover:bg-gray-50'
-        onClick={() => handleSelectTemplate("Split")}
-      >
-        <div className='h-32 bg-gray-100 rounded mb-3 flex items-center justify-center overflow-hidden'>
-          <img
-            src='/templates/hero-split.jpg'
-            alt='Split Hero'
-            className='w-full object-cover'
-          />
-        </div>
-        <h3 className='font-medium text-center'>Split Hero</h3>
-        <p className='text-sm text-gray-500 text-center mt-1'>
-          Text on one side, image on the other
-        </p>
-      </div>
-
-      <div
-        className='border rounded-lg p-4 cursor-pointer hover:bg-gray-50'
-        onClick={() => handleSelectTemplate("Video")}
-      >
-        <div className='h-32 bg-gray-100 rounded mb-3 flex items-center justify-center overflow-hidden'>
-          <img
-            src='/templates/hero-video.jpg'
-            alt='Video Hero'
-            className='w-full object-cover'
-          />
-        </div>
-        <h3 className='font-medium text-center'>Video Hero</h3>
-        <p className='text-sm text-gray-500 text-center mt-1'>
-          Background video with overlay text
-        </p>
+      <div className='grid grid-cols-1 gap-6'>
+        {heroVariants.map((variant) => (
+          <div
+            key={variant.id}
+            className='border rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition-colors'
+            onClick={() => handleSelectTemplate(variant.id)}
+          >
+            <div className='h-48 bg-gray-100 rounded mb-3 flex items-center justify-center overflow-hidden'>
+              <img
+                src={variant.previewImage}
+                alt={variant.name}
+                className='w-full h-full object-cover'
+              />
+            </div>
+            <h3 className='font-medium'>{variant.name}</h3>
+            <p className='text-sm text-gray-500 mt-1'>{variant.description}</p>
+          </div>
+        ))}
       </div>
     </div>
   );

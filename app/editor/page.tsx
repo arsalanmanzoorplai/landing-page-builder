@@ -182,7 +182,11 @@ export default function EditorPage() {
         setDoc(doc(db, `websites/${websiteId}/sections/${section.id}`), {
           type: section.type,
           order: section.order,
-          data: section.data,
+          data: {
+            ...section.data,
+            // Make sure variantId is included if it exists
+            variantId: section.data.variantId || "default",
+          },
         })
       );
 

@@ -11,7 +11,7 @@ import Footer from "@/components/templates/travel-tour/Footer";
 import EditableSection from "@/components/ui/EditableSection";
 import EditSheet from "@/components/ui/EditSheet";
 import AddSectionSheet from "@/components/ui/AddSectionSheet";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { setPreviewMode } from "@/redux/features/uiSlice";
 import {
   NavbarData,
@@ -21,6 +21,8 @@ import {
   FeaturedToursData,
   FooterData,
 } from "@/hooks/useSectionEditor";
+import { aboutVariants } from "./travel-tour/sections/about";
+import { heroVariants } from "./travel-tour/sections/hero";
 
 interface SectionData {
   [key: string]: any;
@@ -42,11 +44,19 @@ export default function TravelTourTemplate({
 }: TravelTourTemplateProps) {
   const dispatch = useDispatch();
   const { sections } = useSelector((state: ReduxState) => state.template);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Update previewMode in Redux when prop changes
   useEffect(() => {
     dispatch(setPreviewMode(previewMode));
   }, [previewMode, dispatch]);
+
+  // Add a loading state to prevent flashing of components
+  useEffect(() => {
+    if (sections && sections.length > 0) {
+      setIsLoaded(true);
+    }
+  }, [sections]);
 
   // Sort sections by order
   const sortedSections = [...sections].sort((a, b) => a.order - b.order);
@@ -54,16 +64,40 @@ export default function TravelTourTemplate({
   const renderSection = (section: Section, isLastSection: boolean = false) => {
     try {
       let content;
+
+      // Get the variant ID from the section data, defaulting to "original" if not set
+      const variantId = section.data.variantId || "original";
+
       switch (section.type) {
         case "navbar":
           content = <Navbar data={section.data as NavbarData} />;
           break;
-        case "hero":
-          content = <Hero data={section.data as HeroData} />;
+        case "hero": {
+          // Find the variant component
+          const variant = heroVariants.find(
+            (v: { id: string }) => v.id === variantId
+          );
+          // Use the variant component if found, otherwise fall back to original
+          const HeroComponent = variant
+            ? variant.component
+            : heroVariants.find((v: { id: string }) => v.id === "original")
+                ?.component || Hero;
+          content = <HeroComponent data={section.data as HeroData} />;
           break;
-        case "about":
-          content = <About data={section.data as AboutData} />;
+        }
+        case "about": {
+          // Find the variant component
+          const variant = aboutVariants.find(
+            (v: { id: string }) => v.id === variantId
+          );
+          // Use the variant component if found, otherwise fall back to original
+          const AboutComponent = variant
+            ? variant.component
+            : aboutVariants.find((v: { id: string }) => v.id === "original")
+                ?.component || About;
+          content = <AboutComponent data={section.data as AboutData} />;
           break;
+        }
         case "services":
           content = <Services data={section.data as ServicesData} />;
           break;
@@ -88,6 +122,18 @@ export default function TravelTourTemplate({
       return <div>Error rendering {section.type} section</div>;
     }
   };
+
+  // Show a loading state if the sections haven't loaded yet
+  if (!isLoaded) {
+    return (
+      <div className='flex items-center justify-center min-h-screen'>
+        <div className='animate-pulse text-center'>
+          <div className='h-8 w-32 bg-gray-200 rounded mb-4 mx-auto'></div>
+          <div className='h-4 w-48 bg-gray-200 rounded mx-auto'></div>
+        </div>
+      </div>
+    );
+  }
 
   // Check if the last section should have special styling
   const lastSectionIndex = sortedSections.length - 1;

@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import TemplateFactory from "@/components/templates/TemplateFactory";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { setTemplate } from "@/redux/features/templateSlice";
 import { Section } from "@/hooks/useEditableSections";
+import { ReduxState } from "@/redux/store/Store";
 
 interface ClientSideWrapperProps {
   templateType: string;
@@ -22,26 +23,57 @@ export default function ClientSideWrapper({
   websiteId,
 }: ClientSideWrapperProps) {
   const dispatch = useDispatch();
+  const [isReady, setIsReady] = useState(false);
+  const templateState = useSelector((state: ReduxState) => state.template);
 
   // Initialize Redux store with the server-fetched data
   useEffect(() => {
-    dispatch(
-      setTemplate({
-        id: websiteId,
-        name: websiteName,
-        templateType: templateType,
-        sections: sections,
-        editingSectionId: null,
-        lastUpdated: new Date().toISOString(),
-      })
-    );
-  }, [dispatch, websiteId, websiteName, templateType, sections]);
+    // Only set the template if it doesn't match the current one
+    if (templateState.id !== websiteId) {
+      dispatch(
+        setTemplate({
+          id: websiteId,
+          name: websiteName,
+          templateType: templateType,
+          sections: sections,
+          editingSectionId: null,
+          lastUpdated: new Date().toISOString(),
+        })
+      );
+    }
+
+    // Mark as ready after a short delay to ensure all data is processed
+    const timer = setTimeout(() => {
+      setIsReady(true);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [
+    dispatch,
+    websiteId,
+    websiteName,
+    templateType,
+    sections,
+    templateState.id,
+  ]);
 
   // Function to force a refresh of the page
   const forceRefresh = () => {
     const timestamp = Date.now();
     window.location.href = `${window.location.pathname}?t=${timestamp}`;
   };
+
+  // Show loading state until templates are ready
+  if (!isReady) {
+    return (
+      <div className='fixed inset-0 flex items-center justify-center bg-white'>
+        <div className='text-center'>
+          <div className='animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full mb-4 mx-auto'></div>
+          <div className='text-lg text-gray-700'>Loading website...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

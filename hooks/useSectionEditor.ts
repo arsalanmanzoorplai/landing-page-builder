@@ -23,10 +23,13 @@ export interface HeroData {
   title: string;
   subtitle: string;
   paragraphs: string[];
-  ctaButtons: Array<{
+  ctaText?: string;
+  ctaLink?: string;
+  // For backward compatibility
+  ctaButtons?: Array<{
     text: string;
     url: string;
-    variant: "default" | "outline";
+    variant: string;
   }>;
 }
 
