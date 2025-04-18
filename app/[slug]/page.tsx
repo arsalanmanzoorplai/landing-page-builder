@@ -42,20 +42,42 @@ export async function generateMetadata(props: IProps): Promise<Metadata> {
     // Try to get the favicon from navbar section if it exists
     let favicon = "/images/travel-tour-img/favicon.ico"; // Default favicon
 
-    try {
-      const sectionsRef = collection(db, `websites/${websiteId}/sections`);
-      const sectionsSnapshot = await getDocs(sectionsRef);
+    // First check if info field exists
+    if (websiteData.info) {
+      // Define type for section to avoid lint errors
+      interface SectionData {
+        type: string;
+        data?: {
+          tabLogo?: string;
+          [key: string]: any;
+        };
+      }
 
-      // Find the navbar section which contains our tabLogo
-      const navbarSection = sectionsSnapshot.docs
-        .map((doc) => ({ ...doc.data() }))
-        .find((section) => section.type === "navbar");
+      // Find navbar section in the info field
+      const navbarSection = Object.values(websiteData.info).find(
+        (section: any) => section.type === "navbar"
+      ) as SectionData | undefined;
 
-      if (navbarSection && navbarSection.data && navbarSection.data.tabLogo) {
+      if (navbarSection?.data?.tabLogo) {
         favicon = navbarSection.data.tabLogo;
       }
-    } catch (error) {
-      console.error("Error fetching favicon:", error);
+    } else {
+      // Fallback to legacy subcollection
+      try {
+        const sectionsRef = collection(db, `websites/${websiteId}/sections`);
+        const sectionsSnapshot = await getDocs(sectionsRef);
+
+        // Find the navbar section which contains our tabLogo
+        const navbarSection = sectionsSnapshot.docs
+          .map((doc) => ({ ...doc.data() }))
+          .find((section) => section.type === "navbar");
+
+        if (navbarSection && navbarSection.data && navbarSection.data.tabLogo) {
+          favicon = navbarSection.data.tabLogo;
+        }
+      } catch (error) {
+        console.error("Error fetching favicon:", error);
+      }
     }
 
     console.log("websiteData", websiteData);
@@ -80,6 +102,7 @@ export default async function SlugPage(props: IProps) {
   const { params } = props;
   const { slug } = await params;
   let website = null;
+  let websiteId = "";
   let templateType = "travel-tour"; // Default
   let sections: Section[] = [];
   let error = null;
@@ -103,21 +126,45 @@ export default async function SlugPage(props: IProps) {
       const websiteDoc = querySnapshot.docs[0];
       const websiteData = websiteDoc.data();
       website = websiteData;
+      websiteId = websiteDoc.id;
 
       // Get the template type
       templateType =
         websiteData.templateType || websiteData.templateId || "travel-tour";
 
-      // Load sections from the database
-      const websiteId = websiteDoc.id;
-      const sectionsRef = collection(db, `websites/${websiteId}/sections`);
-      const sectionsSnapshot = await getDocs(sectionsRef);
+      // Load sections from the info field
+      if (websiteData.info) {
+        // Define interface for section data
+        interface SectionInfo {
+          type: string;
+          order: number;
+          data?: {
+            [key: string]: any;
+          };
+        }
 
-      if (!sectionsSnapshot.empty) {
-        sections = sectionsSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Section[];
+        sections = Object.entries(websiteData.info).map(
+          ([id, sectionData]: [string, any]) => ({
+            id,
+            type: sectionData.type,
+            order: sectionData.order,
+            data: sectionData.data || {},
+          })
+        ) as Section[];
+
+        // Sort sections by order
+        sections.sort((a, b) => (a.order || 0) - (b.order || 0));
+      } else {
+        // Fallback to legacy subcollection if info doesn't exist
+        const sectionsRef = collection(db, `websites/${websiteId}/sections`);
+        const sectionsSnapshot = await getDocs(sectionsRef);
+
+        if (!sectionsSnapshot.empty) {
+          sections = sectionsSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as Section[];
+        }
       }
     }
   } catch (err) {
@@ -151,7 +198,7 @@ export default async function SlugPage(props: IProps) {
         sections={sections}
         websiteName={website.name}
         websiteSlug={slug}
-        websiteId={website.id}
+        websiteId={websiteId}
       />
     );
   }

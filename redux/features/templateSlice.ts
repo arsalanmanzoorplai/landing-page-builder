@@ -167,13 +167,19 @@ const initialSections: Section[] = [
     id: nanoid(),
     type: "hero",
     order: 1,
-    data: { ...defaultSectionData.hero },
+    data: {
+      ...defaultSectionData.hero,
+      variantId: "original",
+    },
   },
   {
     id: nanoid(),
     type: "about",
     order: 2,
-    data: { ...defaultSectionData.about },
+    data: {
+      ...defaultSectionData.about,
+      variantId: "original",
+    },
   },
   {
     id: nanoid(),

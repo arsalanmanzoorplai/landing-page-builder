@@ -25,6 +25,18 @@ import {
 } from "@/redux/features/templateSlice";
 import { Section } from "@/hooks/useEditableSections";
 
+// Add interface for the info object
+interface InfoObject {
+  [key: string]: {
+    type: string;
+    order: number;
+    data: {
+      [key: string]: any;
+      variantId?: string;
+    };
+  };
+}
+
 export default function EditorPage() {
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
@@ -91,16 +103,20 @@ export default function EditorPage() {
         websiteData.templateType || websiteData.templateId || "travel-tour";
       setTemplateType(type);
 
-      // Check if there are existing sections for this website
-      const sectionsRef = collection(db, `websites/${websiteId}/sections`);
-      const sectionsSnapshot = await getDocs(sectionsRef);
+      // Check if there are existing sections in the info property
+      if (websiteData.info) {
+        // Convert info object to sections array
+        const sections = Object.entries(websiteData.info).map(
+          ([id, sectionData]: [string, any]) => ({
+            id,
+            type: sectionData.type,
+            order: sectionData.order,
+            data: sectionData.data || {},
+          })
+        ) as Section[];
 
-      if (!sectionsSnapshot.empty) {
-        // If there are saved sections, load them
-        const sections = sectionsSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Section[];
+        // Sort sections by order
+        sections.sort((a, b) => (a.order || 0) - (b.order || 0));
 
         // Set the template data in Redux with existing sections
         dispatch(
@@ -114,14 +130,38 @@ export default function EditorPage() {
           })
         );
       } else {
-        // If no sections found (new website), initialize with fresh template
-        // Pass both type and name to ensure the name is preserved
-        dispatch(
-          resetTemplate({
-            type: type,
-            name: websiteData.name,
-          })
-        );
+        // Check legacy subcollection if info property doesn't exist
+        const sectionsRef = collection(db, `websites/${websiteId}/sections`);
+        const sectionsSnapshot = await getDocs(sectionsRef);
+
+        if (!sectionsSnapshot.empty) {
+          // If there are saved sections in the subcollection, load them
+          const sections = sectionsSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as Section[];
+
+          // Set the template data in Redux with existing sections
+          dispatch(
+            setTemplate({
+              id: websiteId,
+              name: websiteData.name || "Website",
+              templateType: type,
+              sections: sections,
+              editingSectionId: null,
+              lastUpdated: new Date().toISOString(),
+            })
+          );
+        } else {
+          // If no sections found (new website), initialize with fresh template
+          // Pass both type and name to ensure the name is preserved
+          dispatch(
+            resetTemplate({
+              type: type,
+              name: websiteData.name,
+            })
+          );
+        }
       }
 
       setLoading(false);
@@ -145,53 +185,28 @@ export default function EditorPage() {
       // Use templateState from component scope
       const sections = templateState.sections;
 
-      // First update the website document with basic info
-      await updateDoc(websiteRef, {
-        updatedAt: serverTimestamp(),
-        name: templateState.name || website.name,
-      });
+      // Convert sections array to info object
+      const infoObject: InfoObject = {};
+      sections.forEach((section: Section) => {
+        // Ensure variantId is set for each section, defaulting to "original" if not present
+        const variantId = section.data.variantId || "original";
 
-      // Then save all the sections to Firestore
-      const sectionsRef = collection(db, `websites/${websiteId}/sections`);
-
-      // Get existing sections to compare
-      const existingSectionsSnapshot = await getDocs(sectionsRef);
-      const existingSectionIds = new Set(
-        existingSectionsSnapshot.docs.map((doc) => doc.id)
-      );
-
-      // First delete sections that no longer exist
-      const currentSectionIds = new Set(
-        sections.map((section: Section) => section.id)
-      );
-
-      const deletePromises = [];
-      for (const sectionId of existingSectionIds) {
-        if (!currentSectionIds.has(sectionId)) {
-          deletePromises.push(
-            deleteDoc(doc(db, `websites/${websiteId}/sections/${sectionId}`))
-          );
-        }
-      }
-
-      // Delete old sections first
-      await Promise.all(deletePromises);
-
-      // Then save all current sections
-      const savePromises = sections.map((section: Section) =>
-        setDoc(doc(db, `websites/${websiteId}/sections/${section.id}`), {
+        infoObject[section.id] = {
           type: section.type,
           order: section.order,
           data: {
             ...section.data,
-            // Make sure variantId is included if it exists
-            variantId: section.data.variantId || "default",
+            variantId: variantId,
           },
-        })
-      );
+        };
+      });
 
-      // Wait for all sections to be saved
-      await Promise.all(savePromises);
+      // Update the website document with basic info and the info object
+      await updateDoc(websiteRef, {
+        updatedAt: serverTimestamp(),
+        name: templateState.name || website.name,
+        info: infoObject,
+      });
 
       console.log(
         `Successfully saved ${sections.length} sections to Firestore`
