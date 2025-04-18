@@ -13,7 +13,8 @@ import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { useUIState } from "@/hooks/useUIState";
 import { useSectionEditor } from "@/hooks/useSectionEditor";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import { setSelectedTabIndex } from "@/redux/features/uiSlice";
 
 // Import section-specific editors
 import NavbarEditor from "@/components/editors/NavbarEditor";
@@ -32,10 +33,11 @@ import FeaturedToursTemplates from "@/components/templates/FeaturedToursTemplate
 import FooterTemplates from "@/components/templates/FooterTemplates";
 
 const EditSheet: React.FC = () => {
+  const dispatch = useDispatch();
   const {
     isEditSheetOpen,
     selectedTabIndex,
-    setSelectedTabIndex,
+    setSelectedTabIndex: setTabIndex,
     closeAllSheets,
   } = useUIState();
 
@@ -43,6 +45,14 @@ const EditSheet: React.FC = () => {
   const editingSectionId = useSelector(
     (state: any) => state.template.editingSectionId
   );
+
+  // Reset to edit tab when active section changes or sheet opens
+  useEffect(() => {
+    if (isEditSheetOpen) {
+      // Reset to the edit tab (index 0) whenever the sheet opens or active section changes
+      dispatch(setSelectedTabIndex(0));
+    }
+  }, [isEditSheetOpen, editingSectionId, dispatch]);
 
   useEffect(() => {
     if (isEditSheetOpen) {
@@ -153,9 +163,7 @@ const EditSheet: React.FC = () => {
           defaultValue='edit'
           className='mt-6'
           value={selectedTabIndex === 0 ? "edit" : "templates"}
-          onValueChange={(value) =>
-            setSelectedTabIndex(value === "edit" ? 0 : 1)
-          }
+          onValueChange={(value) => setTabIndex(value === "edit" ? 0 : 1)}
         >
           <TabsList className='grid w-full grid-cols-2'>
             <TabsTrigger value='edit'>Edit</TabsTrigger>

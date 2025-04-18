@@ -54,7 +54,7 @@ const storage = createSessionStorage();
 // ***** persistConfig *****
 const persistConfig = {
   key: "landing-app",
-  blacklist: ["app", "template"], // Don't persist template state - load fresh from database
+  blacklist: ["app", "template", "ui", "auth"], // Don't persist template state - load fresh from database
   storage,
 };
 
